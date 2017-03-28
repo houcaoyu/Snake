@@ -1,0 +1,19 @@
+{
+  "name": "cocos2d-js-v3",
+  "version": "1.0.0",
+  "description": "This guide is for the usage of single file engine of Cocos2d-JS which can be retrieved from [the online downloader](http://cocos2d-x.org/filecenter/jsbuilder/).",
+  "main": "cocos2d-js-v3.13-lite.js",
+  "scripts": {
+    "build": "./node_modules/.bin/webpack",
+    "server": "./node_modules/.bin/webpack-dev-server"
+
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "webpack": "^2.3.1",
+    "webpack-dev-server": "^2.4.2"
+  },
+  "dependencies": {}
+}

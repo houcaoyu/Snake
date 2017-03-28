@@ -1,19 +1,23 @@
 {
-  "name": "cocos2d-js-v3",
+  "name": "snake",
   "version": "1.0.0",
-  "description": "This guide is for the usage of single file engine of Cocos2d-JS which can be retrieved from [the online downloader](http://cocos2d-x.org/filecenter/jsbuilder/).",
-  "main": "cocos2d-js-v3.13-lite.js",
+  "description": "a snake game",
+  "main": "index.js",
   "scripts": {
-    "build": "./node_modules/.bin/webpack",
-    "server": "./node_modules/.bin/webpack-dev-server"
-
+    "build": "./node_modules/.bin/gulp concatjs",
+    "watch": "./node_modules/.bin/gulp watch",
+    "server": "./node_modules/.bin/mini-http",
+    "start": "npm run build && npm run watch & npm run server "
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "webpack": "^2.3.1",
-    "webpack-dev-server": "^2.4.2"
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-livereload": "^3.8.1",
+    "livereload-js": "^2.2.2",
+    "mini-http": "^0.1.16"
   },
   "dependencies": {}
 }
