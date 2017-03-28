@@ -5,36 +5,10 @@ function Egg() {
   this.position=new Point(0,0)
   this.path=new Path.Circle(this.position,this.radius)
   this.path.fillColor='DeepSkyBlue'
-}
-
-var snake=new Snake()
-var eggs=[];
-for(var i=0;i<100;i++){
-  var egg=new Egg();
-  egg.path.position=new Point(Math.random()*300,Math.random()*300)
-  eggs.push(egg)
-}
-function onMouseDrag(event) {
-    snake.direction=event.point-snake.position
-
-}
-
-function onFrame(event) {
-    snake.tick(event)
-    view.center = snake.position
-
-    //hit test between snake and eggs
-    for (var i in eggs) {
-      var egg=eggs[i]
-      if(!egg.path.visible){
-        continue
-      }
-
-      if(egg.path.intersects(snake.pathBody[0])){
-        console.log('a')
-        egg.path.visible=false
-      }
-    }
+  this.setActive=function(active){
+    this.active=active;
+    this.path.visible=active;
+  }
 }
 
   //
@@ -111,20 +85,26 @@ function Snake() {
     this.direction = new Point(10,0)
     this.speed=150;
     this.unitLength=15;
+    this.minBodyCount=10;
+    this.energy=0;
+    this.unitEnergy=10;
 
     this.pathBody = []
     var node = new Path.Circle([0, 0], 10)
     node.fillColor = 'blue'
     var symbol = new Symbol(node)
-    for (var i = 0; i < 50; i++) {
+    for (var i = 0; i < this.minBodyCount; i++) {
         this.pathBody.push(symbol.place(this.position))
         this.path.add(this.position)
     }
     this.tick = function(event) {
+
+        //update the path
         var step = this.direction.normalize(event.delta*this.speed)
         this.position += step
         this.path.insert(0, this.position)
 
+        //update every body's position
         for (var i = 0; i < this.pathBody.length; i++) {
             var computedDistance=this.unitLength*i;
             var actualDistance=this.path.getOffsetOf(this.pathBody[i].position)
@@ -133,11 +113,34 @@ function Snake() {
             }
         }
 
+        //remove suplurs segments of the path
         var lastNode=this.pathBody[this.pathBody.length-1]
         var segment=this.path.getLocationOf(lastNode.position).curve.segment2
         if(segment.next){
           this.path.removeSegments(segment.next.index)
         }
+
+        //append or remove body according to energy
+        if(this.energy<0){
+          this.energy=0;
+        }
+        var bodyEnergy=(this.pathBody.length-this.minBodyCount)*this.unitEnergy
+
+        if(this.energy-bodyEnergy>=this.unitEnergy){
+          this.appendBody();
+        }else if(bodyEnergy>this.energy){
+          this.removeBody()
+        }
+
+    }
+    this.appendBody=function(){
+      var lastBody=this.pathBody[this.pathBody.length-1]
+      this.pathBody.push(symbol.place(lastBody.position))
+    }
+    this.removeBody=function(){
+      if(this.pathBody.length>this.minBodyCount){
+        this.pathBody.pop();
+      }
     }
 
 }
@@ -202,3 +205,33 @@ function Snake() {
 //     return false;
 //   }
 // }
+
+var snake=new Snake()
+var eggs=[];
+for(var i=0;i<100;i++){
+  var egg=new Egg();
+  egg.path.position=new Point(Math.random()*300,Math.random()*300)
+  eggs.push(egg)
+}
+function onMouseDrag(event) {
+    snake.direction=event.point-snake.position
+
+}
+
+function onFrame(event) {
+    snake.tick(event)
+    view.center = snake.position
+
+    //hit test between snake and eggs
+    for (var i in eggs) {
+      var egg=eggs[i]
+      if(!egg.active){
+        continue
+      }
+
+      if(egg.path.intersects(snake.pathBody[0])){
+        egg.setActive(false)
+        snake.energy+=egg.energy
+      }
+    }
+}

@@ -5,4 +5,8 @@ function Egg() {
   this.position=new Point(0,0)
   this.path=new Path.Circle(this.position,this.radius)
   this.path.fillColor='DeepSkyBlue'
+  this.setActive=function(active){
+    this.active=active;
+    this.path.visible=active;
+  }
 }

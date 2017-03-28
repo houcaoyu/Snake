@@ -17,13 +17,13 @@ function onFrame(event) {
     //hit test between snake and eggs
     for (var i in eggs) {
       var egg=eggs[i]
-      if(!egg.path.visible){
+      if(!egg.active){
         continue
       }
 
       if(egg.path.intersects(snake.pathBody[0])){
-        console.log('a')
-        egg.path.visible=false
+        egg.setActive(false)
+        snake.energy+=egg.energy
       }
     }
 }
