@@ -1,17 +1,18 @@
-function Snake() {
+function Snake(position) {
     this.path = new Path();
 
     this.path.selected = true;
     // Give the stroke a color
     this.path.strokeColor = 'black';
 
-    this.position = view.center
+    this.position = position||view.center
     this.direction = new Point(10,0)
     this.speed=150;
     this.unitLength=15;
     this.minBodyCount=10;
     this.energy=0;
     this.unitEnergy=10;
+    this.alive=true;
 
     this.pathBody = []
     var node = new Path.Circle([0, 0], 10)
@@ -22,7 +23,9 @@ function Snake() {
         this.path.add(this.position)
     }
     this.tick = function(event) {
-
+        if(!this.alive){
+          return ;
+        }
         //update the path
         var step = this.direction.normalize(event.delta*this.speed)
         this.position += step
@@ -31,17 +34,23 @@ function Snake() {
         //update every body's position
         for (var i = 0; i < this.pathBody.length; i++) {
             var computedDistance=this.unitLength*i;
-            var actualDistance=this.path.getOffsetOf(this.pathBody[i].position)
-            if(actualDistance>computedDistance){
-              this.pathBody[i].position = this.path.getPointAt(computedDistance)
+            var position=this.path.getPointAt(computedDistance)
+            if(position){
+              this.pathBody[i].position=position
+            }else{
+              this.pathBody[i].position=this.path.lastSegment.point
             }
         }
 
-        //remove suplurs segments of the path
         var lastNode=this.pathBody[this.pathBody.length-1]
-        var segment=this.path.getLocationOf(lastNode.position).curve.segment2
-        if(segment.next){
-          this.path.removeSegments(segment.next.index)
+        var totalLength=(this.pathBody.length-1)*this.unitLength
+        var location=this.path.getLocationAt(totalLength)
+        if(location){
+          var segment=location.curve.segment2
+          if(segment.next){
+            this.path.removeSegments(segment.next.index)
+          }
+          segment.point=lastNode.position
         }
 
         //append or remove body according to energy
@@ -65,6 +74,12 @@ function Snake() {
       if(this.pathBody.length>this.minBodyCount){
         this.pathBody.pop();
       }
+    }
+    this.die=function(){
+      this.alive=false;
+      $.each(this.pathBody,function(i,body){
+        body.visible=false;
+      })
     }
 
 }

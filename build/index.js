@@ -1,14 +1,91 @@
-function Egg() {
+function Egg(symbol) {
   this.radius = 5;
   this.energy = 1;
   this.active = true; //标志是否还活着
   this.position=new Point(0,0)
-  this.path=new Path.Circle(this.position,this.radius)
-  this.path.fillColor='DeepSkyBlue'
+  if(symbol){
+    this.item=symbol.place(this.position)
+  }else{
+    this.item=new Path.Circle(this.position,this.radius);
+    this.item.fillColor='DeepSkyBlue'
+  }
   this.setActive=function(active){
     this.active=active;
-    this.path.visible=active;
+    this.item.visible=active;
   }
+}
+
+var snake=new Snake()
+var eggs=[];
+var eggSymbol=new Symbol(new Egg().item);
+for(var i=0;i<100;i++){
+  var egg=new Egg(eggSymbol);
+  egg.item.position=new Point(Math.random()*3000,Math.random()*3000)
+  eggs.push(egg)
+}
+
+var foolSnakes=[];
+for(var i=0;i<10;i++){
+  var fs=new Snake(new Point(200+100*i,200)); 
+  fs.direction.angle=90*(i%2>0?1:-1)
+  foolSnakes.push(fs);
+}
+var timer=new Timer(2,function(){
+  $.each(foolSnakes,function(i,n){
+    n.direction.angle*=-1
+  })
+},{loop:true})
+timer.start()
+
+function onMouseDrag(event) {
+    snake.direction=event.point-snake.position
+
+}
+
+function onFrame(event) {
+    snake.tick(event)
+    view.center = snake.position
+
+    $.each(foolSnakes,function(i,n){
+      n.tick(event)
+    })
+
+    //hit test between snake and eggs
+    for (var i in eggs) {
+      var egg=eggs[i]
+      if(!egg.active){
+        continue
+      }
+
+      if(egg.item.intersects(snake.pathBody[0])){
+        egg.setActive(false)
+        snake.energy+=egg.energy
+      }
+    }
+
+    //hit test between snakes
+    if(snake.alive){
+      $.each(foolSnakes,function(i,fs){
+        if(!fs.alive){
+          return;
+        }
+
+        //player killed fool snakes
+        $.each(snake.pathBody,function(j,body){
+          if(body.intersects(fs.pathBody[0])){
+            fs.die();
+          }
+        })
+
+        //fool snakes killed player
+        $.each(fs.pathBody,function(j,body){
+          if(body.intersects(snake.pathBody[0])){
+            snake.die()
+          }
+        })
+      })
+    }
+
 }
 
   //
@@ -74,20 +151,21 @@ function Egg() {
   //
   // module.exports = createjs.promote(JoyStick, "Container");
 
-function Snake() {
+function Snake(position) {
     this.path = new Path();
 
     this.path.selected = true;
     // Give the stroke a color
     this.path.strokeColor = 'black';
 
-    this.position = view.center
+    this.position = position||view.center
     this.direction = new Point(10,0)
     this.speed=150;
     this.unitLength=15;
     this.minBodyCount=10;
     this.energy=0;
     this.unitEnergy=10;
+    this.alive=true;
 
     this.pathBody = []
     var node = new Path.Circle([0, 0], 10)
@@ -98,7 +176,9 @@ function Snake() {
         this.path.add(this.position)
     }
     this.tick = function(event) {
-
+        if(!this.alive){
+          return ;
+        }
         //update the path
         var step = this.direction.normalize(event.delta*this.speed)
         this.position += step
@@ -107,17 +187,23 @@ function Snake() {
         //update every body's position
         for (var i = 0; i < this.pathBody.length; i++) {
             var computedDistance=this.unitLength*i;
-            var actualDistance=this.path.getOffsetOf(this.pathBody[i].position)
-            if(actualDistance>computedDistance){
-              this.pathBody[i].position = this.path.getPointAt(computedDistance)
+            var position=this.path.getPointAt(computedDistance)
+            if(position){
+              this.pathBody[i].position=position
+            }else{
+              this.pathBody[i].position=this.path.lastSegment.point
             }
         }
 
-        //remove suplurs segments of the path
         var lastNode=this.pathBody[this.pathBody.length-1]
-        var segment=this.path.getLocationOf(lastNode.position).curve.segment2
-        if(segment.next){
-          this.path.removeSegments(segment.next.index)
+        var totalLength=(this.pathBody.length-1)*this.unitLength
+        var location=this.path.getLocationAt(totalLength)
+        if(location){
+          var segment=location.curve.segment2
+          if(segment.next){
+            this.path.removeSegments(segment.next.index)
+          }
+          segment.point=lastNode.position
         }
 
         //append or remove body according to energy
@@ -142,7 +228,51 @@ function Snake() {
         this.pathBody.pop();
       }
     }
+    this.die=function(){
+      this.alive=false;
+      $.each(this.pathBody,function(i,body){
+        body.visible=false;
+      })
+    }
 
+}
+
+function Timer(time,callback,options){
+  this.time=time;
+  this.callback=callback;
+  this.options=$.extend({loop:false},options)
+
+  this.start=function(context){
+    if(context){
+      context.time=this.time
+    }else{
+      context={
+        time:this.time,
+        options:$.extend(true,this.options)};
+    }
+    var timer=this;
+    if(!context.options.loop===true&&context.options.loop>0){
+      context.options.loop--
+      console.log(context.options.loop)
+    }
+
+    var f=function(event){
+      context.time-=event.delta;
+      if(context.time<=0){
+        timer.callback();
+        view.off('frame',f)
+        if(context.options.loop){
+
+          if(context.options.loop===true){
+            timer.start(context);
+          }else{
+            timer.start(context);
+          }
+        }
+      }
+    }
+    view.on('frame',f)
+  }
 }
 
 // module.exports={
@@ -205,33 +335,3 @@ function Snake() {
 //     return false;
 //   }
 // }
-
-var snake=new Snake()
-var eggs=[];
-for(var i=0;i<100;i++){
-  var egg=new Egg();
-  egg.path.position=new Point(Math.random()*300,Math.random()*300)
-  eggs.push(egg)
-}
-function onMouseDrag(event) {
-    snake.direction=event.point-snake.position
-
-}
-
-function onFrame(event) {
-    snake.tick(event)
-    view.center = snake.position
-
-    //hit test between snake and eggs
-    for (var i in eggs) {
-      var egg=eggs[i]
-      if(!egg.active){
-        continue
-      }
-
-      if(egg.path.intersects(snake.pathBody[0])){
-        egg.setActive(false)
-        snake.energy+=egg.energy
-      }
-    }
-}
